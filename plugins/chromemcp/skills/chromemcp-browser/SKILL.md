@@ -67,6 +67,8 @@ historically opened hundreds of tabs. These rules are not optional:
 
 ## Evidence
 
-Screenshots land in `~/ChromeMCP/mcp/.playwright-mcp/`. Read the PNG back to confirm
-visual claims before reporting them. If `chromemcp test` fails, fix ChromeMCP before
-claiming browser verification passed.
+Screenshots are returned inline and saved to `.playwright-mcp/` under the current
+project root (the server resolves output paths against the MCP client's workspace
+root). Prefer the default timestamped filename — pass no `filename`. Read the PNG
+back to confirm visual claims before reporting them. If `chromemcp test` fails, fix
+ChromeMCP before claiming browser verification passed.
