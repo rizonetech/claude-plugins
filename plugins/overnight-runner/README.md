@@ -12,9 +12,9 @@ state guard CLI and gives Claude the discipline to use it reliably.
 | Item | What it does |
 |---|---|
 | `overnight-runner` skill | Guards every long todo run: evidence-backed updates, browser verification through the chromemcp-browser skill, and a hard finish-check before any completion claim. |
-| `/overnight:start` | Begin a guarded session on a todo file — pre-flight, adversarial todo review, gated execution, and a handoff at the end. |
-| `/overnight:status` | Read the current run state: gates table, open blockers, last update note, and next-step suggestions. |
-| `/overnight:schedule` | Arm a systemd user timer that launches headless Claude on a todo file unattended — confirms linger, permission mode, and disarm command before firing. |
+| `/overnight-runner:start` | Begin a guarded session on a todo file — pre-flight, adversarial todo review, gated execution, and a handoff at the end. |
+| `/overnight-runner:status` | Read the current run state: gates table, open blockers, last update note, and next-step suggestions. |
+| `/overnight-runner:schedule` | Arm a systemd user timer that launches headless Claude on a todo file unattended — confirms linger, permission mode, and disarm command before firing. |
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ state guard CLI and gives Claude the discipline to use it reliably.
   Source: [github.com/rizonetech/overnight-runner](https://github.com/rizonetech/overnight-runner)
 
 - Python ≥ 3.10 (the CLI's only dependency)
-- For `/overnight:schedule`: systemd user instance enabled in WSL2
+- For `/overnight-runner:schedule`: systemd user instance enabled in WSL2
 
 ## Install
 
@@ -46,7 +46,7 @@ The plugin installs at user scope and is available in every project immediately.
 1. Install the CLI (see Prerequisites above).
 2. Install the plugin (above).
 3. Open a project with a todo file (a Markdown checklist), then run:
-   `/overnight:start todo/my-plan.md`
+   `/overnight-runner:start todo/my-plan.md`
 4. Claude runs pre-flight and an adversarial todo review — read the review output.
    If it proposes guardrail items, they are added to the todo before work begins.
 5. Work proceeds slice by slice: after each step Claude records evidence and gate
@@ -57,7 +57,7 @@ The plugin installs at user scope and is available in every project immediately.
 ## Schedule an unattended run
 
 ```
-/overnight:schedule todo/my-plan.md 02:00
+/overnight-runner:schedule todo/my-plan.md 02:00
 ```
 
 Claude confirms the linger setting, shows you the exact systemd-run command, then arms

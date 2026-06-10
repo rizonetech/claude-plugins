@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launched by a systemd user timer armed via /overnight:schedule.
+# Launched by a systemd user timer armed via /overnight-runner:schedule.
 # Args: <project-dir> <todo-file> <permission-mode>
 set -euo pipefail
 
@@ -14,7 +14,7 @@ mkdir -p "$REPORT_DIR"
 REPORT="$REPORT_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 
 echo "overnight-runner unattended run starting $(date -Is)" | tee "$REPORT"
-claude -p "/overnight:start $TODO_FILE" \
+claude -p "/overnight-runner:start $TODO_FILE" \
   --output-format text \
   --permission-mode "$PERMISSION_MODE" \
   >> "$REPORT" 2>&1 || echo "claude exited non-zero: $?" >> "$REPORT"
