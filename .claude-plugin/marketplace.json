@@ -1,0 +1,21 @@
+{
+  "name": "rizonetech",
+  "owner": {
+    "name": "Rizonetech (Pty) Ltd",
+    "email": "derick@rizonetech.com",
+    "url": "https://rizonetech.com"
+  },
+  "metadata": {
+    "description": "Rizonetech's Claude Code plugin collection",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "chromemcp",
+      "source": "./plugins/chromemcp",
+      "description": "Drive a real, signed-in Windows Chrome from WSL2 via the ChromeMCP Playwright MCP stack — with health checks, tiered recovery, and tab discipline.",
+      "category": "browser-automation",
+      "keywords": ["chrome", "browser", "mcp", "playwright", "wsl"]
+    }
+  ]
+}
