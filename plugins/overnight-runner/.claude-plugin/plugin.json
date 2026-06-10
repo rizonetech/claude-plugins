@@ -1,0 +1,14 @@
+{
+  "name": "overnight-runner",
+  "version": "0.1.0",
+  "description": "Honest overnight autonomy: a state guard for long todo runs — evidence-backed completion gates, adversarial todo review, and a systemd launcher for unattended runs.",
+  "author": {
+    "name": "Rizonetech (Pty) Ltd",
+    "email": "derick@rizonetech.com",
+    "url": "https://rizonetech.com"
+  },
+  "homepage": "https://github.com/rizonetech/overnight-runner",
+  "repository": "https://github.com/rizonetech/claude-plugins",
+  "license": "MIT",
+  "keywords": ["autonomous", "overnight", "todo", "state-guard", "claude-code"]
+}

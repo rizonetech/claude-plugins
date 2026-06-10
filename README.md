@@ -14,6 +14,7 @@ Rizonetech's Claude Code plugin marketplace — thin, composable plugins for Cla
 | Plugin | Version | Description |
 |---|---|---|
 | [`chromemcp`](plugins/chromemcp/README.md) | 0.1.1 | Drive a real, signed-in Windows Chrome from WSL2 via the ChromeMCP Playwright MCP stack. |
+| [`overnight-runner`](plugins/overnight-runner/README.md) | 0.1.0 | Honest overnight autonomy: state-guarded todo runs with evidence-backed gates, adversarial todo review, and a systemd launcher for unattended runs. |
 
 ## How this marketplace works
 

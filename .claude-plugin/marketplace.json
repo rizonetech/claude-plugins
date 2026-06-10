@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Rizonetech's Claude Code plugin collection",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {
@@ -16,6 +16,13 @@
       "description": "Drive a real, signed-in Windows Chrome from WSL2 via the ChromeMCP Playwright MCP stack — with health checks, tiered recovery, and tab discipline.",
       "category": "browser-automation",
       "keywords": ["chrome", "browser", "mcp", "playwright", "wsl"]
+    },
+    {
+      "name": "overnight-runner",
+      "source": "./plugins/overnight-runner",
+      "description": "Honest overnight autonomy: state-guarded todo runs with evidence-backed gates, adversarial todo review, and a systemd launcher for unattended runs.",
+      "category": "automation",
+      "keywords": ["autonomous", "overnight", "todo", "state-guard"]
     }
   ]
 }
