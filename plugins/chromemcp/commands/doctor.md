@@ -10,8 +10,10 @@ each check's result as you go.
 2. **Service**: `systemctl --user status chromemcp.service --no-pager | head -8`.
    If inactive: `chromemcp up`.
 3. **Health**: `curl -fsS --max-time 5 http://127.0.0.1:8931/healthz`. Interpret:
-   `"cdp":{"healthy":false}` → `chromemcp chrome`, wait 5s, re-check; still failing
-   → `chromemcp bridge-check --fix` (warn: may show a Windows UAC prompt).
+   healthz unreachable (connection refused/timeout) → `chromemcp up`, wait 5s,
+   re-check; `"cdp":{"healthy":false}` → `chromemcp chrome`, wait 5s, re-check;
+   still failing → `chromemcp bridge-check --fix` (warn: may show a Windows UAC
+   prompt).
 4. **Auth + MCP registration**: confirm `~/.config/chromemcp/token` exists and
    `claude mcp list 2>/dev/null | grep chromemcp` (or check `~/.claude.json`
    mcpServers) shows the `chromemcp` http server on port 8931. If missing, re-add:

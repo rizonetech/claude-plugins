@@ -18,9 +18,10 @@ improvising.
    (installs to `~/ChromeMCP`, runs npm ci, symlinks `chromemcp` into
    `~/.local/bin`).
 4. **Bridge + Chrome** (Windows side): `chromemcp chrome` to launch Chrome with
-   CDP. If CDP is not reachable from WSL afterwards, `chromemcp setup-bridge` —
-   warn the user a UAC prompt will appear on the Windows desktop and they must
-   approve it.
+   CDP. If CDP is not reachable from WSL afterwards, run `chromemcp setup-bridge`
+   (first-time bridge install; later drift repairs use `chromemcp bridge-check
+   --fix` instead) — warn the user a UAC prompt will appear on the Windows desktop
+   and they must approve it.
 5. **Service**: `chromemcp enable` (systemd user unit + linger).
 6. **MCP registration** (user scope, applies to all projects):
    `claude mcp add --scope user --transport http chromemcp http://127.0.0.1:8931/mcp --header "Authorization: Bearer $(cat ~/.config/chromemcp/token)"`

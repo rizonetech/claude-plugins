@@ -23,13 +23,13 @@ rung at a time, re-checking `/healthz` after each rung.
 
 ## Recovery ladder
 
-1. **CDP unhealthy** (`"healthy":false` or connection refused on the gateway IP —
-   usually the debug-port Chrome exited):
-   `chromemcp chrome` (relaunches Windows Chrome with CDP; idempotent), wait 5s, re-check.
-2. **Still unhealthy** (bridge drift after a Windows reboot/IP change):
+1. **healthz unreachable** (connection refused / timeout on `127.0.0.1:8931` — the
+   server itself is down): `chromemcp up`, wait 5s, re-check.
+2. **healthz reachable but CDP unhealthy** (`"cdp":{"healthy":false}` — usually the
+   debug-port Chrome exited): `chromemcp chrome` (relaunches Windows Chrome with CDP;
+   idempotent), wait 5s, re-check.
+3. **Still unhealthy** (bridge drift after a Windows reboot/IP change):
    `chromemcp bridge-check --fix` (may trigger a one-time Windows UAC prompt), re-check.
-3. **healthz itself unreachable** (server down):
-   `chromemcp up`, wait 5s, re-check.
 4. **`chromemcp` command not found or ~/ChromeMCP missing** — ChromeMCP is not
    installed. Do NOT improvise an install; tell the user and offer to run
    `/chromemcp:install` (guided bootstrap).
@@ -50,9 +50,9 @@ historically opened hundreds of tabs. These rules are not optional:
    health problem — go to the recovery ladder. Opening another tab and retrying is
    how hundreds of tabs happen.
 4. **Hard cap: 3 tabs.** Only open a new tab when the task genuinely requires two
-   pages simultaneously (e.g. comparing). If `browser_tabs` lists more than 3, close
-   the extras you created; leave tabs you did not create alone unless the user says
-   otherwise.
+   pages simultaneously (e.g. comparing). If `browser_tabs` already lists more than
+   3 tabs, do not add more — and never close tabs you did not open this session
+   without asking the user first.
 5. **Close what you open.** Before finishing, close any tab you created.
 
 ## Working method
