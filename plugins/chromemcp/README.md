@@ -11,7 +11,7 @@ gives Claude the discipline to use it reliably.
 | Item | What it does |
 |---|---|
 | `chromemcp-browser` skill | Health-check-first browser automation with tiered recovery and hard tab-discipline rules. Claude invokes this automatically for any task that needs real Chrome. |
-| `/chromemcp:install` | Guided end-to-end bootstrap: clones the ChromeMCP repo, installs to `~/ChromeMCP`, configures the systemd user unit, launches Chrome with CDP, and registers the MCP server at user scope. |
+| `/chromemcp:install` | Guided end-to-end bootstrap: installs the latest ChromeMCP release (via `npx @rizonetech/chromemcp install`) to `~/ChromeMCP`, configures the systemd user unit, launches Chrome with CDP, and registers the MCP server at user scope. |
 | `/chromemcp:doctor` | Diagnoses and repairs a broken stack — checks install, service, health endpoint, auth token, and MCP registration, then summarises findings in a table. |
 
 ## Prerequisites
