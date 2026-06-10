@@ -69,6 +69,7 @@ historically opened hundreds of tabs. These rules are not optional:
 
 Screenshots are returned inline and saved to `.playwright-mcp/` under the current
 project root (the server resolves output paths against the MCP client's workspace
-root). Prefer the default timestamped filename — pass no `filename`. Read the PNG
-back to confirm visual claims before reporting them. If `chromemcp test` fails, fix
-ChromeMCP before claiming browser verification passed.
+root; an explicit `filename` resolves against the project root instead). Prefer the
+default timestamped filename — pass no `filename`. Read the PNG back to confirm
+visual claims before reporting them. If `chromemcp test` fails, fix ChromeMCP before
+claiming browser verification passed.

@@ -1,6 +1,6 @@
 {
   "name": "chromemcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Drive a real, signed-in Windows Chrome from WSL2 via the ChromeMCP Playwright MCP stack — health checks, tiered recovery, tab discipline.",
   "author": {
     "name": "Rizonetech (Pty) Ltd",
