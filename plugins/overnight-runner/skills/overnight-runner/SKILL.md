@@ -24,6 +24,11 @@ If `overnight-runner` is not on PATH, do NOT improvise — tell the user and off
 1. **Start**: `overnight-runner start <todo.md>` — runs pre-flight (module detection,
    ChromeMCP health) and an adversarial todo review. Read the review output; add any
    guardrail items it proposes to the todo before working.
+   **Re-entering a todo that already has state** (a relaunch, a new session on the
+   same list): use `overnight-runner start --resume <todo.md>` instead — it preserves
+   the accumulated notes, blockers, slices, and rollback manifest while refreshing
+   pre-flight. `--resume` is always safe: with no matching prior state it falls back
+   to a normal fresh start.
 2. **Work slice by slice.** After each meaningful step record it:
    `overnight-runner update --note "<what was done>" --gate <gate>=<status> ...`
    Never check a todo item without evidence recorded in the same update.
