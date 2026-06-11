@@ -11,10 +11,13 @@ shared and persistent: same tabs, cookies, and logins across all sessions and cl
 
 ## Health check first — always
 
-Before any browser work, verify the stack:
+Before any browser work, verify the stack. Sessions launched into an isolated
+ChromeMCP lane (e.g. by overnight-runner) export `CHROMEMCP_MCP_URL`; default
+sessions use the shared stack on 8931:
 
 ```bash
-curl -fsS --max-time 5 http://127.0.0.1:8931/healthz
+BASE="${CHROMEMCP_MCP_URL:-http://127.0.0.1:8931/mcp}"
+curl -fsS --max-time 5 "${BASE%/mcp}/healthz"
 ```
 
 Healthy means `"status":"ok"` and `"cdp":{"healthy":true}`. If healthy, proceed
@@ -23,8 +26,13 @@ rung at a time, re-checking `/healthz` after each rung.
 
 ## Recovery ladder
 
-1. **healthz unreachable** (connection refused / timeout on `127.0.0.1:8931` — the
-   server itself is down): `chromemcp up`, wait 5s, re-check.
+When `CHROMEMCP_LANE_CLIENT` and `CHROMEMCP_LANE` are set in the environment,
+replace `chromemcp up` below with
+`chromemcp lane up --client "$CHROMEMCP_LANE_CLIENT" "$CHROMEMCP_LANE"`
+(it restarts the lane's own server, Chrome profile, and CDP port).
+
+1. **healthz unreachable** (connection refused / timeout — the server itself is
+   down): `chromemcp up`, wait 5s, re-check.
 2. **healthz reachable but CDP unhealthy** (`"cdp":{"healthy":false}` — usually the
    debug-port Chrome exited): `chromemcp chrome` (relaunches Windows Chrome with CDP;
    idempotent), wait 5s, re-check.

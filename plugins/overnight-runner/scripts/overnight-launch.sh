@@ -37,6 +37,58 @@ resolve_claude() {
 
 echo "overnight-runner unattended run starting $(date -Is)" | tee "$REPORT"
 CLAUDE="$(resolve_claude)" || { echo "FATAL: claude CLI not found (set CLAUDE_BIN)" >> "$REPORT"; exit 127; }
+
+# Claim an isolated ChromeMCP lane (ChromeMCP >= 0.3.0) so this run cannot
+# collide with concurrent overnight runs — codex lanes, other claude lanes,
+# or an interactive session on the default stack. Best-effort: without
+# chromemcp, a free lane, or a startable lane stack, the run proceeds on the
+# default shared stack.
+CHROMEMCP_BIN="$(command -v chromemcp || true)"
+[ -z "$CHROMEMCP_BIN" ] && [ -x "$HOME/ChromeMCP/chromemcp" ] && CHROMEMCP_BIN="$HOME/ChromeMCP/chromemcp"
+LANE=""
+LANE_MCP_CONFIG=""
+MCP_CONFIG_ARGS=()
+cleanup_lane() {
+  [ -n "$LANE_MCP_CONFIG" ] && rm -f "$LANE_MCP_CONFIG"
+  if [ -n "$LANE" ]; then
+    "$CHROMEMCP_BIN" lane down --client claude "$LANE" >> "$REPORT" 2>&1 || true
+    "$CHROMEMCP_BIN" lane release --client claude "$LANE" >> "$REPORT" 2>&1 || true
+  fi
+}
+trap cleanup_lane EXIT
+if [ -n "$CHROMEMCP_BIN" ] && "$CHROMEMCP_BIN" lane help >/dev/null 2>&1; then
+  if LANE_ENV="$("$CHROMEMCP_BIN" lane acquire --client claude \
+        --owner "overnight-runner:$$" --format shell 2>> "$REPORT")"; then
+    eval "$LANE_ENV"
+    LANE="$CHROMEMCP_LANE"
+    echo "claimed claude ChromeMCP lane $LANE ($MCP_URL)" >> "$REPORT"
+    if "$CHROMEMCP_BIN" lane up --client claude "$LANE" >> "$REPORT" 2>&1; then
+      TOKEN="$(MCP_TOKEN_PATH="$MCP_TOKEN_PATH" "$CHROMEMCP_BIN" token 2>/dev/null || true)"
+      if [ -n "$TOKEN" ]; then
+        # Same server name as the user-level registration so the lane URL
+        # overrides it for this session only. mktemp is 0600; removed on exit.
+        LANE_MCP_CONFIG="$(mktemp)"
+        printf '{"mcpServers":{"chromemcp":{"type":"http","url":"%s","headers":{"Authorization":"Bearer %s"}}}}\n' \
+          "$MCP_URL" "$TOKEN" > "$LANE_MCP_CONFIG"
+        MCP_CONFIG_ARGS=(--mcp-config "$LANE_MCP_CONFIG")
+      else
+        echo "lane $LANE token unavailable; session keeps the default chromemcp registration" >> "$REPORT"
+      fi
+      export CHROMEMCP_MCP_URL="$MCP_URL"
+    else
+      echo "lane $LANE stack failed to start (bridge for CDP port $CDP_PORT not pre-installed?);" \
+           "continuing on the default ChromeMCP stack" >> "$REPORT"
+      unset CHROMEMCP_LANE CHROMEMCP_LANE_CLIENT CHROMEMCP_LANE_SUFFIX CHROMEMCP_CODEX_LANE_SUFFIX
+    fi
+    # Generic names leak into the session env and can confuse the project
+    # under test (dev servers honor PORT); the session only needs the
+    # CHROMEMCP_* names.
+    unset PORT UPSTREAM_PORT CDP_PORT MCP_URL MCP_TOKEN_PATH MCP_CHROME_PROFILE_NAME
+  else
+    echo "no free claude ChromeMCP lane; continuing on the default stack" >> "$REPORT"
+  fi
+fi
+
 # stream-json through the formatter so the report streams progress live
 # (plain `--output-format text` stays silent until the run ends). --resume is
 # safe on a fresh todo: the guard falls back to a normal start when no prior
@@ -44,7 +96,8 @@ CLAUDE="$(resolve_claude)" || { echo "FATAL: claude CLI not found (set CLAUDE_BI
 set +o pipefail  # the pipeline must complete so PIPESTATUS captures claude's exit code
 "$CLAUDE" -p "/overnight-runner:start --resume $TODO_FILE" \
   --output-format stream-json --verbose \
-  --permission-mode "$PERMISSION_MODE" 2>&1 \
+  --permission-mode "$PERMISSION_MODE" \
+  ${MCP_CONFIG_ARGS[@]+"${MCP_CONFIG_ARGS[@]}"} 2>&1 \
   | python3 "$SCRIPT_DIR/stream-report.py" \
   | tee -a "$REPORT"
 CLAUDE_EXIT="${PIPESTATUS[0]}"
