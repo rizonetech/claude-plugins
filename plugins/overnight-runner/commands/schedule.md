@@ -7,10 +7,10 @@ Schedule an unattended guarded run. Arguments: a todo file and a start time (e.g
 
 This arms real machine state — show the user the exact command before running it.
 
-1. Pre-flight: `command -v overnight-runner` (offer installer if missing);
-   `systemctl --user is-system-running` must not error; warn if `loginctl show-user
-   $USER --property=Linger` is not `Linger=yes` (timer dies on logout without it —
-   fix: `loginctl enable-linger $USER`).
+1. Pre-flight is built into the arm script (step 3): it verifies user systemd,
+   the overnight-runner CLI, and linger. On a clean system, ask the user once
+   whether to pass `--bootstrap` -- it auto-installs the CLI and enables
+   linger; without it the script prints the exact fix commands and exits.
 2. Ask the user which permission mode the unattended run gets. Recommend
    `bypassPermissions` for genuinely unattended runs and say why: with
    `acceptEdits` the headless session stalls at its FIRST Bash permission

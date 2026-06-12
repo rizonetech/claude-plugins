@@ -18,7 +18,7 @@
 # the project directory basename, the project path from $PWD.
 set -euo pipefail
 
-TODO_FILE="${1:?usage: overnight-arm.sh <todo.md> [--mode M] [--at T] [--watchdog C] [--no-watchdog] [--disarm]}"
+TODO_FILE="${1:?usage: overnight-arm.sh <todo.md> [--mode M] [--at T] [--watchdog C] [--no-watchdog] [--bootstrap] [--disarm]}"
 shift
 
 MODE="bypassPermissions"
@@ -26,16 +26,63 @@ AT=""
 WATCHDOG_CAL="*:0/30"
 ARM_WATCHDOG=1
 DISARM=0
+BOOTSTRAP=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode)        MODE="${2:?--mode needs a value}"; shift 2 ;;
     --at)          AT="${2:?--at needs a systemd calendar value}"; shift 2 ;;
     --watchdog)    WATCHDOG_CAL="${2:?--watchdog needs a cadence}"; shift 2 ;;
     --no-watchdog) ARM_WATCHDOG=0; shift ;;
+    --bootstrap)   BOOTSTRAP=1; shift ;;
     --disarm)      DISARM=1; shift ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
+
+# ---- Pre-flight: self-healing dependency checks ---------------------------
+# Auto-fix under --bootstrap, confirm on an interactive TTY, otherwise fail
+# with the exact command so a headless caller can report it verbatim.
+confirm_or_bootstrap() {  # $1 = prompt
+  [ "$BOOTSTRAP" = "1" ] && return 0
+  if [ -t 0 ]; then
+    read -r -p "$1 [y/N] " reply
+    [ "$reply" = "y" ] || [ "$reply" = "Y" ]
+    return $?
+  fi
+  return 1
+}
+
+if ! systemctl --user is-system-running >/dev/null 2>&1 &&
+   ! systemctl --user is-system-running 2>/dev/null | grep -qE "running|degraded"; then
+  echo "FATAL: user systemd is not available (systemctl --user errors). Timers cannot be armed." >&2
+  exit 1
+fi
+
+INSTALL_CMD='curl -fsSL https://raw.githubusercontent.com/rizonetech/overnight-runner/main/scripts/install.sh | bash'
+if [ "$DISARM" = "0" ] &&
+   ! command -v overnight-runner >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/overnight-runner" ]; then
+  if confirm_or_bootstrap "overnight-runner CLI missing. Install it now?"; then
+    echo "installing overnight-runner CLI..."
+    bash -c "$INSTALL_CMD"
+    [ -x "$HOME/.local/bin/overnight-runner" ] || { echo "FATAL: install did not produce ~/.local/bin/overnight-runner" >&2; exit 1; }
+  else
+    echo "FATAL: overnight-runner CLI missing. Install with:" >&2
+    echo "  $INSTALL_CMD" >&2
+    echo "or re-run with --bootstrap to install automatically." >&2
+    exit 1
+  fi
+fi
+
+if [ "$DISARM" = "0" ] &&
+   [ "$(loginctl show-user "$USER" --property=Linger --value 2>/dev/null)" != "yes" ]; then
+  if confirm_or_bootstrap "Linger is off (timers die on logout). Enable it now?"; then
+    loginctl enable-linger "$USER"
+    echo "linger enabled for $USER"
+  else
+    echo "WARN: linger is off -- armed timers stop when you log out. Fix: loginctl enable-linger $USER" >&2
+  fi
+fi
+# ---------------------------------------------------------------------------
 
 PROJECT_DIR="$PWD"
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
