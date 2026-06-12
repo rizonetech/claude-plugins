@@ -19,25 +19,24 @@ This arms real machine state — show the user the exact command before running 
    Spell out the trade: `bypassPermissions` means unattended Claude runs shell
    commands without prompts. Whatever mode is chosen, the watchdog MUST be
    armed with the SAME mode as the main timer.
-3. Arm the timer (PLUGIN_ROOT is this plugin's directory, available as
-   ${CLAUDE_PLUGIN_ROOT}):
-   `systemd-run --user --on-calendar="<resolved time>" --unit="overnight-$(basename $PWD)-$(date +%H%M)" bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-launch.sh "$PWD" "<todo.md>" "<permission-mode>"`
-4. Arm the watchdog: a recurring timer (default hourly, same unit name with a
-   `-watchdog` suffix) that runs the exact same launch invocation. The launch
-   script's flock makes it a no-op while a run is alive and a relauncher when
-   one died, so it is always safe to fire:
-   `systemd-run --user --on-calendar="hourly" --unit="overnight-$(basename $PWD)-$(date +%H%M)-watchdog" bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-launch.sh "$PWD" "<todo.md>" "<permission-mode>"`
-   If the user wants a different cadence, adjust `--on-calendar` (e.g.
-   `*:0/30` for every 30 minutes). Tell the user the watchdog is armed and that
-   it relaunches a dead run within the hour. Usage limits are handled: the
-   launch script parses the "resets <time>" hint from a limit-killed run and
-   snoozes all launches (including watchdog ticks) until the reset -- session
-   limits resume the same day, weekly limits when the week rolls; no manual
-   re-arming needed.
+3. Arm main timer + watchdog in one portable step (works from any project
+   root; installs a version-independent `~/.local/bin/overnight-launch` shim
+   so the units survive plugin updates):
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-arm.sh "<todo.md>" --mode <permission-mode> --at "<resolved time>"`
+   Defaults when flags are omitted: start 2 minutes out, watchdog every 30
+   minutes, mode bypassPermissions. `--watchdog "<cadence>"` adjusts the
+   relaunch cadence; `--no-watchdog` skips it (not recommended for unattended
+   runs); re-running re-arms idempotently.
+4. The watchdog relaunches a dead run within its cadence; the launch script's
+   flock makes ticks no-ops while a run is alive. Usage limits are handled:
+   the launch script parses the "resets <time>" hint from a limit-killed run
+   and snoozes all launches (including watchdog ticks) until the reset --
+   session limits resume the same day, weekly limits when the week rolls; no
+   manual re-arming needed.
 5. Confirm: `systemctl --user list-timers | grep overnight` and tell the user where
    the morning report will be: `.claude/overnight/reports/run-<timestamp>.log` (it
    streams live, so `tail -f` shows progress), and how to disarm both units:
-   `systemctl --user stop <unit>.timer <unit>-watchdog.timer 2>/dev/null; systemctl --user stop <unit>.service <unit>-watchdog.service 2>/dev/null`.
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-arm.sh "<todo.md>" --disarm`.
    Remind the user to disarm the watchdog once the run is truly done, or it will
    keep relaunching on the same todo (harmless but noisy — the guard's finish
    gates keep it honest).
