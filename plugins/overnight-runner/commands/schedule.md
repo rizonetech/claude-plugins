@@ -11,9 +11,14 @@ This arms real machine state — show the user the exact command before running 
    `systemctl --user is-system-running` must not error; warn if `loginctl show-user
    $USER --property=Linger` is not `Linger=yes` (timer dies on logout without it —
    fix: `loginctl enable-linger $USER`).
-2. Ask the user which permission mode the unattended run gets:
-   default `acceptEdits`; `bypassPermissions` only if they explicitly choose it —
-   spell out that it means unattended Claude runs shell commands without prompts.
+2. Ask the user which permission mode the unattended run gets. Recommend
+   `bypassPermissions` for genuinely unattended runs and say why: with
+   `acceptEdits` the headless session stalls at its FIRST Bash permission
+   prompt (build, test, git) with nobody there to approve, and every watchdog
+   relaunch stalls the same way -- the timer chain silently does nothing.
+   Spell out the trade: `bypassPermissions` means unattended Claude runs shell
+   commands without prompts. Whatever mode is chosen, the watchdog MUST be
+   armed with the SAME mode as the main timer.
 3. Arm the timer (PLUGIN_ROOT is this plugin's directory, available as
    ${CLAUDE_PLUGIN_ROOT}):
    `systemd-run --user --on-calendar="<resolved time>" --unit="overnight-$(basename $PWD)-$(date +%H%M)" bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-launch.sh "$PWD" "<todo.md>" "<permission-mode>"`
@@ -24,7 +29,11 @@ This arms real machine state — show the user the exact command before running 
    `systemd-run --user --on-calendar="hourly" --unit="overnight-$(basename $PWD)-$(date +%H%M)-watchdog" bash ${CLAUDE_PLUGIN_ROOT}/scripts/overnight-launch.sh "$PWD" "<todo.md>" "<permission-mode>"`
    If the user wants a different cadence, adjust `--on-calendar` (e.g.
    `*:0/30` for every 30 minutes). Tell the user the watchdog is armed and that
-   it relaunches a dead run within the hour.
+   it relaunches a dead run within the hour. Usage limits are handled: the
+   launch script parses the "resets <time>" hint from a limit-killed run and
+   snoozes all launches (including watchdog ticks) until the reset -- session
+   limits resume the same day, weekly limits when the week rolls; no manual
+   re-arming needed.
 5. Confirm: `systemctl --user list-timers | grep overnight` and tell the user where
    the morning report will be: `.claude/overnight/reports/run-<timestamp>.log` (it
    streams live, so `tail -f` shows progress), and how to disarm both units:

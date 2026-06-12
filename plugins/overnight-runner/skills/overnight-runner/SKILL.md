@@ -38,9 +38,22 @@ If `overnight-runner` is not on PATH, do NOT improvise — tell the user and off
    be echoed in the handoff, never hidden.
 4. **Blockers**: when stuck, record it (`overnight-runner update --blocker "<why>"`)
    and move to independent items instead of retrying in a loop.
-5. **Finish**: `overnight-runner finish-check` must pass before you claim completion.
-   If it fails, fix what it names or report honestly what is blocked.
-   Then `overnight-runner handoff` and include its output in your final report.
+5. **Finish -- terminal conditions ONLY.** The work unit is the ENTIRE todo
+   file (or the queue it describes), never one slice: completing a slice means
+   immediately starting the next unblocked one, not finishing. Run
+   `overnight-runner finish-check` + `overnight-runner handoff` ONLY when one
+   of these is true:
+   - every item/section is complete (file exhausted),
+   - a decision only the user can make is blocking ALL remaining work
+     (record the question as a blocker first),
+   - a hard failure you cannot root-cause is blocking ALL remaining work, or
+   - every remaining item is blocked with a recorded blocker/XREF.
+   A clean exit with unblocked work remaining is a protocol violation, not a
+   success. External deaths (usage limits, API errors) are not finishes -- the
+   watchdog timer relaunches those; do not pre-emptively finish because a limit
+   "might" be near. `finish-check` must pass before you claim completion; if it
+   fails, fix what it names or report honestly what is blocked. Include the
+   handoff output in your final report.
 
 ## Hard rules
 

@@ -13,5 +13,9 @@ Run a guarded todo execution in this session. The argument is the todo file path
 3. Work the todo per the overnight-runner skill's run protocol: evidence with every
    update, browser gates through the chromemcp-browser skill, blockers recorded —
    never silently skipped.
-4. End with `overnight-runner finish-check` and `overnight-runner handoff`; include
-   the handoff in your summary.
+4. End with `overnight-runner finish-check` and `overnight-runner handoff` ONLY at a
+   terminal condition per the skill's run protocol (file exhausted, user-decision
+   blocker, unrecoverable hard failure, or all remaining items blocked with a
+   recorded blocker). Finishing after a completed slice while unblocked work remains
+   is a protocol violation: start the next slice instead. Include the handoff in your
+   summary when you do finish.

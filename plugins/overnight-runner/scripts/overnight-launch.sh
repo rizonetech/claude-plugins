@@ -8,10 +8,31 @@ TODO_FILE="${2:?todo file required}"
 PERMISSION_MODE="${3:-acceptEdits}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# systemd user units get a minimal PATH; unattended runs need the user-level
+# CLIs (overnight-runner, codex) and the nvm node bin on it. Latest nvm node
+# wins; harmless when the dirs do not exist.
+NVM_NODE_BIN="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+export PATH="$HOME/.local/bin${NVM_NODE_BIN:+:$NVM_NODE_BIN}:$PATH"
+
 cd "$PROJECT_DIR"
 export OVERNIGHT_RUNNER_BASE=.claude/overnight
 REPORT_DIR="$PROJECT_DIR/.claude/overnight/reports"
 mkdir -p "$REPORT_DIR"
+
+# Limit-aware snooze: when a previous run died on a usage limit, the tail of
+# this script recorded the reset time. Until then every (watchdog) launch is
+# a cheap no-op, so a 30-min watchdog cadence never hammers a session OR a
+# weekly limit.
+SNOOZE_FILE="$PROJECT_DIR/.claude/overnight/snooze-until"
+if [ -f "$SNOOZE_FILE" ]; then
+  SNOOZE_UNTIL="$(cat "$SNOOZE_FILE" 2>/dev/null || echo 0)"
+  NOW_EPOCH="$(date +%s)"
+  if [ "$NOW_EPOCH" -lt "${SNOOZE_UNTIL:-0}" ] 2>/dev/null; then
+    echo "usage-limit snooze active until $(date -d "@$SNOOZE_UNTIL" -Is 2>/dev/null || echo "$SNOOZE_UNTIL"), launch skipped $(date -Is)"
+    exit 0
+  fi
+  rm -f "$SNOOZE_FILE"
+fi
 
 # Concurrency lock: only one launch per project at a time. Watchdog timers can
 # call this script freely — it exits 0 immediately while a run is alive. The
@@ -105,4 +126,48 @@ set -o pipefail
 if [ "$CLAUDE_EXIT" -ne 0 ]; then
   echo "claude exited non-zero: $CLAUDE_EXIT" >> "$REPORT"
 fi
+
+# Usage-limit detection: parse the reset hint from the report tail and write
+# the snooze file the pre-flight above honors. Session limits give a time of
+# day ("resets 8:10pm (Area/City)"); weekly limits give a date. Best-effort:
+# unparseable hints snooze 30 minutes (one watchdog tick); parses are capped
+# at 8 days as a corruption guard.
+tail -40 "$REPORT" | python3 - "$SNOOZE_FILE" <<'PYEOF' >> "$REPORT" 2>&1 || true
+import re, sys, time, datetime
+text = sys.stdin.read()
+m = re.search(r"hit your .{0,30}limit.{0,10}resets ([^\n]*)", text, re.I)
+if not m:
+    sys.exit(0)
+hint = m.group(1).strip()
+now = datetime.datetime.now()
+until = None
+tm = re.search(r"(\d{1,2}):(\d{2})\s*(am|pm)", hint, re.I)
+if tm:
+    h, mn = int(tm.group(1)) % 12, int(tm.group(2))
+    if tm.group(3).lower() == "pm":
+        h += 12
+    until = now.replace(hour=h, minute=mn, second=0, microsecond=0)
+    if until <= now:
+        until += datetime.timedelta(days=1)
+else:
+    dm = re.search(r"([A-Z][a-z]{2,8})\s+(\d{1,2})", hint)
+    if dm:
+        try:
+            month = datetime.datetime.strptime(dm.group(1)[:3], "%b").month
+            until = now.replace(month=month, day=int(dm.group(2)),
+                                hour=0, minute=15, second=0, microsecond=0)
+            if until <= now:
+                until = until.replace(year=until.year + 1)
+        except ValueError:
+            pass
+if until is None:
+    until = now + datetime.timedelta(minutes=30)
+cap = now + datetime.timedelta(days=8)
+if until > cap:
+    until = cap
+epoch = int(time.mktime(until.timetuple()))
+open(sys.argv[1], "w").write(str(epoch))
+print(f"usage limit detected (resets {hint}); snoozing launches until {until.isoformat()}")
+PYEOF
+
 echo "overnight-runner unattended run finished $(date -Is)" >> "$REPORT"
