@@ -16,8 +16,19 @@ state guard CLI and gives Claude the discipline to use it reliably.
 | `/overnight-runner:status` | Read the current run state: gates table, open blockers, last update note, and next-step suggestions. |
 | `/overnight-runner:schedule` | Arm a systemd user timer that launches headless Claude on a todo file unattended — confirms linger, permission mode, and disarm command before firing. |
 
+## Platform requirement
+
+**Linux or WSL2 with a user systemd instance. macOS and plain Windows are not
+supported.** Unattended scheduling is built on `systemd-run --user` timers,
+`loginctl` linger, and GNU coreutils (`date -d`); none of these exist on
+macOS (launchd would need a separate port) or outside WSL2 on Windows. The
+in-session pieces (`/overnight-runner:start`, `:status`) also assume a Linux
+shell. On WSL2, enable systemd in `/etc/wsl.conf` (`[boot] systemd=true`)
+before using `:schedule`.
+
 ## Prerequisites
 
+- Linux/WSL2 with user systemd (see Platform requirement above)
 - `overnight-runner` CLI installed and on PATH:
 
   ```
@@ -27,8 +38,10 @@ state guard CLI and gives Claude the discipline to use it reliably.
   Installs to `~/.overnight-runner`, symlinks `overnight-runner` into `~/.local/bin`.
   Source: [github.com/rizonetech/overnight-runner](https://github.com/rizonetech/overnight-runner)
 
-- Python ≥ 3.10 (the CLI's only dependency)
-- For `/overnight-runner:schedule`: systemd user instance enabled in WSL2
+  On a clean system you can skip this: `scripts/overnight-arm.sh <todo.md> --bootstrap`
+  installs the CLI and enables linger as part of its pre-flight.
+
+- Python ≥ 3.10 (the CLI's only dependency; also used by the limit-snooze parser)
 
 ## Install
 
@@ -60,12 +73,15 @@ The plugin installs at user scope and is available in every project immediately.
 /overnight-runner:schedule todo/my-plan.md 02:00
 ```
 
-Claude confirms the linger setting, shows you the exact systemd-run command, then arms
-the timer. To disarm before it fires:
+Claude arms the main timer plus a watchdog through `scripts/overnight-arm.sh`
+(portable: unit names derive from the project directory, and a version-independent
+`~/.local/bin/overnight-launch` shim keeps timers working across plugin updates).
+The watchdog relaunches a dead run on its cadence (default every 30 minutes); a
+usage-limit death writes a snooze parsed from the "resets ..." hint, so session and
+weekly limits are waited out and resumed automatically. To disarm both units:
 
 ```
-systemctl --user stop overnight-<project>-<HHMM>.timer
-systemctl --user stop overnight-<project>-<HHMM>.service
+bash <plugin>/scripts/overnight-arm.sh todo/my-plan.md --disarm
 ```
 
 The morning report lands at `.claude/overnight/reports/run-<timestamp>.log`.
