@@ -1,6 +1,6 @@
 {
   "name": "overnight-runner",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Honest overnight autonomy: a state guard for long todo runs — evidence-backed completion gates, adversarial todo review, and a systemd launcher for unattended runs.",
   "author": {
     "name": "Rizonetech (Pty) Ltd",
